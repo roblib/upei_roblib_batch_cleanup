@@ -1,0 +1,6 @@
+name = Roblib Batch Cleanup
+description = A module to cleanup after batch ingests.  If all items in a batch are marked ingested this module will delete the batch.
+package = Roblib
+dependencies[] = islandora_batch
+version = 7.x-dev
+core = 7.x

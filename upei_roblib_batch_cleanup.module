@@ -1,0 +1,61 @@
+<?php
+
+/**
+ * @file
+ * Implementation of Roblib batch cleanup.
+ */
+
+/**
+ * Implements hook_cron
+ */
+function upei_roblib_batch_cleanup_cron() {
+  module_load_include('inc', 'islandora_batch', 'includes/db');
+  // get the sets that are 1 hour or older so users get a chance to
+  // see the results of their ingests before we delete them.
+  $sets = islandora_batch_get_sets(time() - 3600);
+  $queue = DrupalQueue::get('upei_roblib_batch_cleanup');
+  foreach ($sets as $set_id) {
+    $queue->createItem($set_id);
+  }
+}
+
+/**
+ * Implements hook_cron_queue_info
+ */
+function upei_roblib_batch_cleanup_cron_queue_info() {
+  $queues = array();
+  $queues['upei_roblib_batch_cleanup'] = array(
+    'worker callback' => 'upei_roblib_batch_cleanup_delete_set',
+    'time' => 30,
+  );
+  return $queues;
+}
+
+/**
+ * Callback for our queue.
+ *
+ * Removes a batch set identified by it's id if all the items are ingested.
+ *
+ * @param int $set_id
+ *   The id of a set
+ */
+function upei_roblib_batch_cleanup_delete_set($set_id) {
+  module_load_include('inc', 'islandora_batch', 'includes/db');
+  if (islandora_batch_check_if_set_is_fully_ingested($set_id)) {
+    $num_objects = islandora_batch_delete_set($set_id);
+    watchdog('upei_roblib_batch_cleanup', 'Successfully removed !num items for set !id',
+      array('!num' => $num_objects, '!id' => $set_id));
+  }
+  else {
+    // When cron runs it should add this set to the queue again so we don't throw an exception.
+    watchdog('upei_roblib_batch_cleanup', 'Did not remove set !id, Not all the objects were ingested.',
+      array('!id' => $set_id));
+  }
+}
+
+
+
+
+
+
+
