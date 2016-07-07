@@ -10,9 +10,9 @@
  */
 function upei_roblib_batch_cleanup_cron() {
   module_load_include('inc', 'islandora_batch', 'includes/db');
-  // get the sets that are 1 hour or older so users get a chance to
-  // see the results of their ingests before we delete them.
-  $sets = islandora_batch_get_sets(time() - 3600);
+  // get the sets that are 1 week or older so users get a chance to
+  // see the results of their ingests before we delete the set.
+  $sets = islandora_batch_get_sets(time() - 604800);
   $queue = DrupalQueue::get('upei_roblib_batch_cleanup');
   foreach ($sets as $set_id) {
     $queue->createItem($set_id);
@@ -47,10 +47,19 @@ function upei_roblib_batch_cleanup_delete_set($set_id) {
       array('!num' => $num_objects, '!id' => $set_id));
   }
   else {
-    // When cron runs it should add this set to the queue again so we don't throw an exception.
     watchdog('upei_roblib_batch_cleanup', 'Did not remove set !id, Not all the objects were ingested.',
       array('!id' => $set_id));
   }
+}
+
+/**
+ * Implements hook_views_api().
+ */
+function upei_roblib_batch_cleanup_views_api() {
+  return array(
+    'api' => 3,
+    'path' => drupal_get_path('module', 'upei_roblib_batch_cleanup') . '/views',
+  );
 }
 
 
